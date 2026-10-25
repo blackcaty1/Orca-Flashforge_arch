@@ -1,0 +1,97 @@
+# Maintainer: blackcaty1
+# PKGBUILD for Orca-Flashforge (Flash Studio) on Arch Linux / CachyOS.
+# Mirrors what BuildLinux.sh does (-d -s): build the bundled static deps first, then the slicer.
+# The build needs network access (the deps are downloaded) and roughly 10 GB RAM / 10 GB disk.
+
+pkgname=orca-flashforge
+pkgver=1.7.0
+pkgrel=1
+pkgdesc='Orca-Flashforge (Flash Studio), open source FDM slicer for FlashForge printers'
+arch=('x86_64')
+url='https://github.com/blackcaty1/Orca-Flashforge_arch'
+license=('AGPL-3.0-only')
+depends=(
+    'dbus'
+    'glew'
+    'glu'
+    'gst-plugins-base'
+    'gst-plugins-good'
+    'gstreamer'
+    'gtk3'
+    'hicolor-icon-theme'
+    'libmspack'
+    'libsecret'
+    'libxkbcommon'
+    'mesa'
+    'pango'
+    'webkit2gtk-4.1'
+)
+makedepends=(
+    'autoconf'
+    'automake'
+    'cmake'
+    'curl'
+    'eglexternalplatform'
+    'extra-cmake-modules'
+    'file'
+    'gettext'
+    'git'
+    'libtool'
+    'm4'
+    'ninja'
+    'patch'
+    'texinfo'
+    'wayland-protocols'
+    'wget'
+)
+# Static deps are built inside the source tree, so keep the package lean and reproducible.
+options=('!lto' '!debug')
+source=("${pkgname}::git+${url}.git#branch=main")
+sha256sums=('SKIP')
+
+build() {
+    # CMake 4 rejects the old cmake_minimum_required() values used by the bundled deps.
+    export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
+    echo "Building dependencies..."
+    cmake -S "${pkgname}/deps" -B deps-build -G Ninja \
+        -DDEP_WX_GTK3=ON \
+        -DDESTDIR="${srcdir}/destdir" \
+        -DDEP_DOWNLOAD_DIR="${srcdir}/DL_CACHE"
+    cmake --build deps-build
+
+    echo "Building Orca-Flashforge..."
+    cmake -S "${pkgname}" -B build -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_PREFIX_PATH="${srcdir}/destdir/usr/local" \
+        -DSLIC3R_STATIC=1 \
+        -DSLIC3R_GTK=3 \
+        -DSLIC3R_FHS=1 \
+        -DBBL_RELEASE_TO_PUBLIC=1 \
+        -DBBL_INTERNAL_TESTING=0
+    cmake --build build --target Orca-Flashforge
+}
+
+package() {
+    DESTDIR="${pkgdir}" cmake --install build
+
+    # The binary is named "Flash Studio" (with a space); give it a shell friendly name.
+    cd "${pkgdir}/usr/bin"
+    local exe
+    exe=$(find . -maxdepth 1 \( -type f -o -type l \) -print -quit)
+    if [[ -z "${exe}" ]]; then
+        echo "No executable was installed to /usr/bin" >&2
+        return 1
+    fi
+    mv "${exe}" flash-studio
+
+    # The shipped desktop file points to a command that does not exist.
+    sed -i 's|^Exec=.*|Exec=flash-studio %F|' \
+        "${pkgdir}/usr/share/applications/Orca-Flashforge.desktop"
+
+    # CMake drops LICENSE.txt into the prefix root; move it to the licenses directory instead.
+    rm -f "${pkgdir}/usr/LICENSE.txt"
+    install -Dm644 "${srcdir}/${pkgname}/LICENSE.txt" \
+        "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.txt"
+}
