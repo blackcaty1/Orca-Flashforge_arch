@@ -4,8 +4,9 @@
 # The build needs network access (the deps are downloaded) and roughly 10 GB RAM / 10 GB disk.
 
 pkgname=orca-flashforge
-pkgver=1.7.0
+pkgver=1.7.15
 pkgrel=1
+_branch=release_0817
 pkgdesc='Orca-Flashforge (Flash Studio), open source FDM slicer for FlashForge printers'
 arch=('x86_64')
 url='https://github.com/blackcaty1/Orca-Flashforge_arch'
@@ -46,7 +47,7 @@ makedepends=(
 )
 # Static deps are built inside the source tree, so keep the package lean and reproducible.
 options=('!lto' '!debug')
-source=("${pkgname}::git+${url}.git#branch=ccr-bc41d412-mh6kvd")
+source=("${pkgname}::git+${url}.git#branch=${_branch}")
 sha256sums=('SKIP')
 
 prepare() {
@@ -75,6 +76,7 @@ build() {
     echo "Building Orca-Flashforge..."
     cmake -S "${pkgname}" -B build -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_FLAGS="${CXXFLAGS} -include cstdint" \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DCMAKE_PREFIX_PATH="${srcdir}/destdir/usr/local" \
         -DSLIC3R_STATIC=1 \
