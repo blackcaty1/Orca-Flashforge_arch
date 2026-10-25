@@ -46,7 +46,7 @@ makedepends=(
 )
 # Static deps are built inside the source tree, so keep the package lean and reproducible.
 options=('!lto' '!debug')
-source=("${pkgname}::git+${url}.git#branch=main")
+source=("${pkgname}::git+${url}.git#branch=ccr-bc41d412-mh6kvd")
 sha256sums=('SKIP')
 
 build() {
