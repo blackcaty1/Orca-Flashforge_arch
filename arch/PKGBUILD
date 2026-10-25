@@ -39,6 +39,7 @@ makedepends=(
     'git'
     'libtool'
     'm4'
+    'nasm'
     'ninja'
     'patch'
     'texinfo'
@@ -53,8 +54,9 @@ sha256sums=('SKIP')
 prepare() {
     cd "${pkgname}"
 
-    # GitLab regenerates its archive zips, so the pinned hash of the TIFF 4.1.0 zip no longer matches.
-    sed -i 's|c56edfacef0a60c0de3e6489194fcb2f24c03dbb550a8a7de5938642d045bd32|17a3e875acece9be40b093361cfef47385d4ef22c995ffbf36b2871f5785f9b8|' \
+    # Older branches only: GitLab regenerates its archive zips, so the pinned hash of the TIFF 4.1.0 zip
+    # no longer matches. Newer branches do not build TIFF as a bundled dep any more.
+    [[ -f deps/TIFF/TIFF.cmake ]] && sed -i 's|c56edfacef0a60c0de3e6489194fcb2f24c03dbb550a8a7de5938642d045bd32|17a3e875acece9be40b093361cfef47385d4ef22c995ffbf36b2871f5785f9b8|' \
         deps/TIFF/TIFF.cmake
 
     # GMP 6.2.1 configure uses K&R C, which GCC 15 (default C23) rejects.
